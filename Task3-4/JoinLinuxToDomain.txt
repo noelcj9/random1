@@ -1,0 +1,40 @@
+Note: Run all the commands without including encapsulating double quotes.
+For example if "sudo su" is  written here, run sudo su in the terminal.
+Steps(tested);
+1.Connect to the unixclient-vm using SSH.
+2.Run the command "sudo su" in the shell. Enter the user password when prompted.
+3.Run "nano /etc/resolv.conf"
+4.In the file that is opened, write "nameserver 10.0.1.4" without the quotes.
+5.Also write "127.0.0.1 unixclient-vm.contoso.local unixclient-vm" on a new line.
+7.Press Ctrl-X and enter y and then press enter to save the file.
+8.Run "sudo apt-get update"
+9.Run "sudo apt-get install krb5-user samba sssd sssd-tools libnss-sss libpam-sss ntp ntpdate realmd adcli"
+10.Run "nano /etc/ntp.conf"
+11.In the file that is opened, look for the "#Add one or more servers here" section and add this line "server contoso.local"
+12.Run these commands:
+        "systemctl stop ntp"
+        "ntpdate contoso.local"
+        "systemctl start ntp"
+13. Now run "realm discover CONTOSO.LOCAL"
+14. Run 'kinit -V azureuser@CONTOSO.LOCAL"
+15. Give it the password of azureuser, at the time being it is "$i&FrGeM54]t-HlTUA%T"
+16. It should say authenticated tot Kerberos v5.
+17. Run "nano /etc/krb5.conf" and add "rdns=false" in the [libdefaults] section.
+18. Run "realm join --verbose contoso.local -U 'azureuser@CONTOSO.LOCAL' --install=/"
+19. Run "nano /etc/sssd/sssd.conf"
+20. Comment out "use fully qualified names" by putting a hash at the starting of the line.
+21. Save the file by the method already specified "Ctrl-X"...
+22. Run "systemctl restart sssd"
+23. Run "nano /etc/ssh/sshd_config"
+24. Make sure PasswordAuthentication is set to yes, if it is no, set it to yes and run "systemctl restart ssh"
+25. Run "nano /etc/pam.d/common-session"
+26. Add the following line in this file below the line session optional pam_sss.so:
+    "session required pam_mkhomedir.so skel=/etc/skel/ umask=0022"
+27. Run "sudo visudo"
+28. Add the following entry to the end of /etc/sudoers file, to allow domain admins the right to sudo:
+    %domain\ admins ALL=(ALL:ALL) ALL
+29. Now you can login with a domain admin account and confirm that everything is working as required.
+    Use the following command to use a domain accout this time:
+    ssh -l azureuser@contoso.local public_ip_of_unixclient_vm
+
+ "commandToExecute": "sudo bash joindomain.sh PRIVATE_IP=${data.template_file.unixclient_joindomain_template.vars.PRIVATE_IP} DOMAIN_FQDN=${data.template_file.unixclient_joindomain_template.vars.DOMAIN_FQDN} DOMAIN_ADMIN=${data.template_file.unixclient_joindomain_template.vars.DOMAIN_ADMIN} PASSWORD=${data.template_file.unixclient_joindomain_template.vars.PASSWORD} VM_NAME=${data.template_file.unixclient_joindomain_template.vars.VM_NAME}"
